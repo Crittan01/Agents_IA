@@ -8,7 +8,7 @@
 
   vars:
     email_smtp_user: "lab.automation.tech@gmail.com"
-    email_smtp_password: "criTAN*"
+    email_smtp_password: "criTAN1*"
 
     # Variables por defecto (se pueden sobreescribir)
     cleanup_paths:
@@ -136,7 +136,7 @@
         password: "{{ email_smtp_password }}"
         to: "{{ email_to }}"
         from: "automation@nttdata.com"
-        subject: "✅ Limpieza de Disco Completada - {{ inventory_hostname }}"
+        subject: "Limpieza de Disco Completada - {{ inventory_hostname }}"
         subtype: html
         body: "{{ lookup('file', report_path) }}"
       delegate_to: localhost

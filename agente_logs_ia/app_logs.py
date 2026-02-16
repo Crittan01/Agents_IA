@@ -222,7 +222,7 @@ def formatear_analisis_visual(resultado):
         if 'problemas_adicionales' in resultado and resultado['problemas_adicionales']:
             st.markdown("#### 6. PROBLEMAS ADICIONALES DETECTADOS")
             st.warning(resultado['problemas_adicionales'])
-            st.info("💡 **Recomendación:** Después de resolver el problema principal, considera ejecutar playbooks adicionales para estos problemas")
+            st.info("**Recomendación:** Después de resolver el problema principal, considera ejecutar playbooks adicionales para estos problemas")
 
 def ejecutar_playbook_awx(playbook_name, variables):
     """Ejecuta playbook en AWX"""
@@ -277,8 +277,7 @@ with st.sidebar:
     
     **Playbooks Disponibles:**
     - disk_cleanup.yml
-    - oracle_health_check.yml
-    - weblogic_restart.yml
+    - service_restart.yml
     """)
     
     st.markdown("---")
@@ -562,22 +561,22 @@ with tab3:
             
             # Mostrar alerta si las variables fueron auto-detectadas
             if st.session_state.variables_extraidas:
-                st.success("✨ **Variables pre-cargadas automáticamente desde el análisis de IA**")
+                st.success("**Variables pre-cargadas automáticamente desde el análisis de IA**")
             
             st.markdown("---")
             
             # Botón de ejecución
-            if st.button("▶️ EJECUTAR PLAYBOOK EN AWX", type="primary", use_container_width=True, key="sr_execute"):
+            if st.button("EJECUTAR PLAYBOOK EN AWX", type="primary", use_container_width=True, key="sr_execute"):
                 # Preparar variables
                 extra_vars = {
                     "target_host": target_host,
                     "service_name": service_name,
                     "service_action": service_action,
                     "email_to": email_to,
-                    "email_pwd": "TU_APP_PASSWORD_AQUI"  # ← Actualiza con tu app password
+                    "email_pwd": "APP_PASSWORD_AQUI"
                 }
                 
-                with st.spinner("🚀 Lanzando job en AWX..."):
+                with st.spinner("Lanzando job en AWX..."):
                     job_id, message = ejecutar_playbook_awx("service_restart", extra_vars)
                     
                     if job_id:
@@ -586,30 +585,30 @@ with tab3:
                         
                         # Monitorear job
                         awx = AWXClient()
-                        with st.spinner("⏳ Esperando que el job termine..."):
+                        with st.spinner("Esperando que el job termine..."):
                             status = awx.wait_for_job(job_id, timeout=300)
                         
                         if status["status"] == "successful":
-                            st.success("✅ **JOB COMPLETADO EXITOSAMENTE**")
+                            st.success("**JOB COMPLETADO EXITOSAMENTE**")
                             st.balloons()
                             
                             # Mostrar output
-                            with st.expander("📄 Ver Output del Job", expanded=True):
+                            with st.expander("Ver Output del Job", expanded=True):
                                 output = awx.get_job_output(job_id)
                                 st.code(output, language="bash")
                             
-                            st.info(f"📧 Reporte HTML enviado a: **{email_to}**")
+                            st.info(f"Reporte HTML enviado a: **{email_to}**")
                         
                         elif status["status"] == "failed":
-                            st.error("❌ **JOB FALLÓ**")
+                            st.error("ERR**JOB FALLÓ**")
                             output = awx.get_job_output(job_id)
                             st.code(output, language="bash")
                         
                         else:
-                            st.warning(f"⚠️ Status: {status['status']}")
+                            st.warning(f"Status: {status['status']}")
                     
                     else:
-                        st.error(f"❌ {message}")
+                        st.error(f"ERR {message}")
 # Footer
 st.markdown("---")
 st.markdown("""

@@ -14,10 +14,10 @@ Feb 16 14:35:18 oracle8node1 postgres[1234]: [8-2] HINT:  Consider increasing th
 Feb 16 14:35:19 oracle8node1 postgres[12352]: [9-1] user=postgres,db=production ERROR:  out of memory
 Feb 16 14:35:19 oracle8node1 postgres[12352]: [9-2] user=postgres,db=production DETAIL:  Failed on request of size 8388608 in memory context "TupleSort main".
 Feb 16 14:35:20 oracle8node1 kernel: [72345.678901] Out of memory: Kill process 12352 (postgres) score 850 or sacrifice child
-Feb 16 14:35:20 oracle8node1 systemd[1]: postgresql-15.service: Main process exited, code=killed, status=9/KILL
+Feb 16 14:35:20 oracle8node1 systemd[1]: postgresql.service: Main process exited, code=killed, status=9/KILL
 Feb 16 14:35:21 oracle8node1 postgres[1234]: [10-1] LOG:  server process (PID 12352) was terminated by signal 9: Killed
 Feb 16 14:35:21 oracle8node1 postgres[1234]: [10-2] DETAIL:  Failed process was running: SELECT * FROM large_table ORDER BY created_at
 Feb 16 14:35:22 oracle8node1 postgres[1234]: [11-1] LOG:  terminating any other active server processes
 Feb 16 14:35:23 oracle8node1 postgres[12353]: [12-1] user=appuser,db=production FATAL:  the database system is in recovery mode
-Feb 16 14:35:24 oracle8node1 systemd[1]: postgresql-15.service: Failed with result 'signal'.
-Feb 16 14:35:25 oracle8node1 systemd[1]: postgresql-15.service: Unit entered failed state.
+Feb 16 14:35:24 oracle8node1 systemd[1]: postgresql.service: Failed with result 'signal'.
+Feb 16 14:35:25 oracle8node1 systemd[1]: postgresql.service: Unit entered failed state.

@@ -27,9 +27,9 @@ JOB_TEMPLATES = {
 
 # Configuración de email (para el playbook)
 EMAIL_CONFIG = {
-    "smtp_host": "smtp.gmail.com",  # Cambiar según tu servidor
+    "smtp_host": "smtp.gmail.com",  # según tu servidor
     "smtp_port": 587,
     "smtp_user": "lab.automation.tech@gmail.com",
-    "smtp_password": "Lj3635084*",  # App password de Gmail
+    "smtp_password": "hlyp lvml uqjo sagh",  # App password de Gmail
     "from_email": "lab.automation.tech@gmail.com"
 }

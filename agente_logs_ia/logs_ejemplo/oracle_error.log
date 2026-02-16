@@ -1,7 +1,0 @@
-2025-01-19 14:23:45 [ERROR] ORA-00257: archiver error. Connect internal only, until freed.
-2025-01-19 14:23:45 [ERROR] Archiver not connected
-2025-01-19 14:23:46 [INFO] Database instance: PRODDB01
-2025-01-19 14:23:46 [ERROR] Archive destination LOG_ARCHIVE_DEST_1 is full
-2025-01-19 14:23:46 [WARN] Available space in /oracle/archive: 0 MB
-2025-01-19 14:23:47 [ERROR] Unable to archive redo log file
-2025-01-19 14:23:47 [CRITICAL] Database operations suspended

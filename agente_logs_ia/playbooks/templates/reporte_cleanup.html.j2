@@ -232,7 +232,7 @@
             <!-- Espacio en Disco -->
             <div class="section">
                 <h2 class="section-title">Espacio en Disco</h2>
-                <div class="code-block">{{ disk_after.stdout_lines }}</div>
+                <div class="code-block">{{ disk_after.stdout | replace('\n', '<br>') }}</div>
             </div>
             
             <!-- Detalles de Ejecución -->

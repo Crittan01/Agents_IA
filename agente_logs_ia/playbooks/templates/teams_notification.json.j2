@@ -1,0 +1,39 @@
+{
+  "@type": "MessageCard",
+  "@context": "https://schema.org/extensions",
+  "summary": "{{ playbook_name | default('Ansible Job') }} Completado",
+  "themeColor": "{% if job_status | default('success') == 'success' %}28a745{% else %}dc3545{% endif %}",
+  "title": "{% if job_status | default('success') == 'success' %}✅{% else %}❌{% endif %} {{ playbook_name | default('Ansible Job') }}",
+  "sections": [
+    {
+      "activityTitle": "Servidor: **{{ inventory_hostname }}**",
+      "activitySubtitle": "{{ ansible_date_time.date }} {{ ansible_date_time.time }}",
+      "facts": [
+        {% if space_freed_gb is defined %}
+        {
+          "name": "Espacio Liberado:",
+          "value": "**{{ space_freed_gb }} GB**"
+        },
+        {
+          "name": "Archivos Eliminados:",
+          "value": "{{ total_files_deleted }}"
+        },
+        {% endif %}
+        {% if service_name is defined %}
+        {
+          "name": "Servicio:",
+          "value": "**{{ service_name }}**"
+        },
+        {
+          "name": "Estado:",
+          "value": "{{ after_state | default('running') }}"
+        },
+        {% endif %}
+        {
+          "name": "Ejecutado por:",
+          "value": "Agente IA Automation"
+        }
+      ]
+    }
+  ]
+}

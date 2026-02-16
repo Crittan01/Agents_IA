@@ -137,7 +137,7 @@
         password: "{{ email_smtp_password }}"
         to: "{{ email_to }}"
         from: "{{ email_smtp_user }}"
-        subject: "{{ '✅' if action_successful else 'ERR' }} Restart de Servicio - {{ service_name }} en {{ inventory_hostname }}"
+        subject: "Restart de Servicio - {{ service_name }} en {{ inventory_hostname }}"
         subtype: html
         secure: starttls
         body: "{{ lookup('file', report_path) }}"

@@ -1,5 +1,4 @@
 Jan 19 10:22:15 oracle8node1 kernel: [12345.678901] EXT4-fs warning (device sda1): ext4_dx_add_entry:2262: Directory index full!
-Jan 19 10:22:16 oracle8node1 systemd[1]: tmp.mount: Unit entered failed state.
 Jan 19 10:22:16 oracle8node1 kernel: [12345.679123] No space left on device
 Jan 19 10:22:17 oracle8node1 httpd[2345]: ERROR: could not write to file "/var/log/httpd/httpd.log": No space left on device
 Jan 19 10:22:18 oracle8node1 systemd[1]: Failed to create directory /var/log/journal: No space left on device

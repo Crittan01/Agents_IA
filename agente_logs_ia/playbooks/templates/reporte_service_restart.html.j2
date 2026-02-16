@@ -171,7 +171,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>{{ 'OK' if action_successful else 'ERR' }} Restart de Servicio {{ 'Exitoso' if action_successful else 'Fallido' }}</h1>
+            <h1>Restart de Servicio {{ 'Exitoso' if action_successful else 'Fallido' }}</h1>
             <div class="subtitle">
                 Servicio: {{ service_name }} | Servidor: {{ inventory_hostname }} | 
                 Fecha: {{ ansible_date_time.date }} {{ ansible_date_time.time }}

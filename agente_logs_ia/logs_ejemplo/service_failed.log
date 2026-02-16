@@ -1,0 +1,11 @@
+Feb 16 14:35:12 oracle8node1 systemd[1]: httpd.service: Main process exited, code=exited, status=1/FAILURE
+Feb 16 14:35:12 oracle8node1 systemd[1]: httpd.service: Failed with result 'exit-code'.
+Feb 16 14:35:12 oracle8node1 systemd[1]: Failed to start The Apache HTTP Server.
+Feb 16 14:35:13 oracle8node1 systemd[1]: httpd.service: Unit entered failed state.
+Feb 16 14:35:13 oracle8node1 systemd[1]: httpd.service: Service hold-off time over, scheduling restart.
+Feb 16 14:35:13 oracle8node1 systemd[1]: httpd.service: Scheduled restart job, restart counter is at 5.
+Feb 16 14:35:13 oracle8node1 systemd[1]: Stopped The Apache HTTP Server.
+Feb 16 14:35:14 oracle8node1 kernel: [72345.678901] httpd[12345]: segfault at 7f8a2c3d4000 ip 00007f8a2c3d4000 sp 00007ffc8e9a7c80 error 15
+Feb 16 14:35:15 oracle8node1 systemd[1]: httpd.service: Start request repeated too quickly.
+Feb 16 14:35:15 oracle8node1 systemd[1]: httpd.service: Failed to start The Apache HTTP Server.
+Feb 16 14:35:15 oracle8node1 systemd[1]: httpd.service: Unit entered failed state.

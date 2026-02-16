@@ -52,12 +52,18 @@ PLAYBOOKS = """
    - cleanup_paths: Lista de rutas a limpiar
    - retention_days: Días de retención de archivos
    - email_to: Email para reporte ejecutivo
-   
-2. oracle_health_check.yml - Diagnóstico Oracle
-3. oracle_archivelog_cleanup.yml - Limpieza archivelog
-4. weblogic_restart.yml - Reinicio WebLogic
-5. weblogic_heap_increase.yml - Incrementar heap
-6. service_restart.yml - Reinicio servicios Linux
+
+2. service_restart.yml - Restart de servicios con validación
+   Variables requeridas:
+   - target_host: Servidor donde ejecutar
+   - service_name: Nombre del servicio (httpd, postgresql, nginx, etc.)
+   - service_action: Acción a ejecutar (restart, start, stop)
+   - email_to: Email para reporte ejecutivo
+
+3. oracle_health_check.yml - Diagnóstico Oracle
+4. oracle_archivelog_cleanup.yml - Limpieza archivelog
+5. weblogic_restart.yml - Reinicio WebLogic
+6. weblogic_heap_increase.yml - Incrementar heap
 7. sql_server_hardening.yml - Hardening SQL Server
 """
 
@@ -80,17 +86,22 @@ Realiza un análisis completo y responde en formato JSON con esta estructura EXA
   "playbook_recomendado": "nombre_exacto_del_playbook.yml",
   "razon_playbook": "Por qué este playbook es el indicado",
   "variables_extraidas": {{
-    "target_host": "hostname extraído del log o 'localhost' si no se identifica",
-    "cleanup_paths": ["ruta1", "ruta2"],
+    // Para disk_cleanup.yml:
+    "target_host": "hostname extraído del log",
+    "cleanup_paths": ["/var/log", "/tmp"],
     "retention_days": 7,
-    "email_to": "lab.automation.tech@gmail.com"
+    "email_to": "lab.automation.tech@gmail.com",
+    
+    // Para service_restart.yml:
+    "service_name": "nombre del servicio extraído del log (httpd, postgresql, nginx, etc.)",
+    "service_action": "restart"
   }},
   "verificacion": "Qué revisar después de la ejecución"
 }}
 
 IMPORTANTE:
-- Para disk_cleanup.yml extrae las rutas que están llenas del log
-- Si ves "/var/log" o "/tmp" llenos, inclúyelos en cleanup_paths
+- Para disk_cleanup.yml: extrae las rutas llenas del log
+- Para service_restart.yml: extrae el nombre del servicio que falló (httpd, postgresql, nginx, sshd, etc.)
 - Detecta el servidor desde el hostname en el log
 - Responde SOLO con el JSON, sin texto adicional"""
 
@@ -298,6 +309,7 @@ with tab2:
         "Escenario:",
         [
             "Linux - Disco Lleno",
+            "Linux - Servicio Caído (httpd)",
             "Oracle - Error ORA-00257 (Archivelog Full)",
             "WebLogic - OutOfMemoryError"
         ]
@@ -308,6 +320,7 @@ with tab2:
     
     logs_map = {
         "Linux - Disco Lleno": logs_dir / "linux_disk_full.log",
+        "Linux - Servicio Caído (httpd)": logs_dir / "service_failed.log",
         "Oracle - Error ORA-00257 (Archivelog Full)": logs_dir / "oracle_error.log",
         "WebLogic - OutOfMemoryError": logs_dir / "weblogic_error.log"
     }
@@ -353,7 +366,7 @@ with tab3:
         st.error("Cliente AWX no disponible. Verifica la configuración.")
     else:
         # Auto-seleccionar playbook si fue sugerido
-        playbook_options = ["disk_cleanup"]
+        playbook_options = ["disk_cleanup", "service_restart"]
         default_index = 0
         
         if st.session_state.playbook_sugerido in playbook_options:
@@ -471,6 +484,98 @@ with tab3:
                     else:
                         st.error(f"{message}")
 
+        elif playbook_select == "service_restart":
+            # Usar variables extraídas o valores por defecto
+            vars_default = st.session_state.variables_extraidas if st.session_state.variables_extraidas else {
+                "target_host": "localhost",
+                "service_name": "httpd",
+                "service_action": "restart",
+                "email_to": "lab.automation.tech@gmail.com"
+            }
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                target_host = st.text_input(
+                    "Servidor destino:",
+                    value=vars_default.get("target_host", "localhost"),
+                    key="sr_target_host",
+                    help="Auto-detectado desde el log" if st.session_state.variables_extraidas else "Hostname o IP del servidor"
+                )
+                
+                service_name = st.text_input(
+                    "Nombre del servicio:",
+                    value=vars_default.get("service_name", "httpd"),
+                    key="sr_service_name",
+                    help="Auto-detectado desde el log" if st.session_state.variables_extraidas else "Nombre del servicio systemd (httpd, nginx, postgresql, etc.)"
+                )
+            
+            with col2:
+                service_action = st.selectbox(
+                    "Acción a ejecutar:",
+                    ["restart", "start", "stop"],
+                    index=["restart", "start", "stop"].index(vars_default.get("service_action", "restart")),
+                    key="sr_service_action",
+                    help="Acción que se ejecutará sobre el servicio"
+                )
+                
+                email_to = st.text_input(
+                    "Email para reporte:",
+                    value=vars_default.get("email_to", "lab.automation.tech@gmail.com"),
+                    key="sr_email_to",
+                    help="Destinatario del reporte HTML ejecutivo"
+                )
+            
+            # Mostrar alerta si las variables fueron auto-detectadas
+            if st.session_state.variables_extraidas:
+                st.success("✨ **Variables pre-cargadas automáticamente desde el análisis de IA**")
+            
+            st.markdown("---")
+            
+            # Botón de ejecución
+            if st.button("▶️ EJECUTAR PLAYBOOK EN AWX", type="primary", use_container_width=True, key="sr_execute"):
+                # Preparar variables
+                extra_vars = {
+                    "target_host": target_host,
+                    "service_name": service_name,
+                    "service_action": service_action,
+                    "email_to": email_to,
+                    "email_pwd": "TU_APP_PASSWORD_AQUI"  # ← Actualiza con tu app password
+                }
+                
+                with st.spinner("🚀 Lanzando job en AWX..."):
+                    job_id, message = ejecutar_playbook_awx("service_restart", extra_vars)
+                    
+                    if job_id:
+                        st.success(f"✅ {message}")
+                        st.info(f"**Job ID:** {job_id}")
+                        
+                        # Monitorear job
+                        awx = AWXClient()
+                        with st.spinner("⏳ Esperando que el job termine..."):
+                            status = awx.wait_for_job(job_id, timeout=300)
+                        
+                        if status["status"] == "successful":
+                            st.success("✅ **JOB COMPLETADO EXITOSAMENTE**")
+                            st.balloons()
+                            
+                            # Mostrar output
+                            with st.expander("📄 Ver Output del Job", expanded=True):
+                                output = awx.get_job_output(job_id)
+                                st.code(output, language="bash")
+                            
+                            st.info(f"📧 Reporte HTML enviado a: **{email_to}**")
+                        
+                        elif status["status"] == "failed":
+                            st.error("❌ **JOB FALLÓ**")
+                            output = awx.get_job_output(job_id)
+                            st.code(output, language="bash")
+                        
+                        else:
+                            st.warning(f"⚠️ Status: {status['status']}")
+                    
+                    else:
+                        st.error(f"❌ {message}")
 # Footer
 st.markdown("---")
 st.markdown("""

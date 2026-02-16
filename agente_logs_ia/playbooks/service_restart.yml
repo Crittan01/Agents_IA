@@ -1,0 +1,160 @@
+---
+# playbooks/service_restart.yml
+# Playbook de restart de servicios con reporte HTML ejecutivo
+
+- name: Service Restart con Reporte Ejecutivo
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: true
+  become: true
+
+  vars:
+    email_smtp_user: "lab.automation.tech@gmail.com"
+    email_smtp_password: "hlyp lvml uqjo sagh"
+
+    # Variables por defecto (se pueden sobreescribir)
+    service_name: "postgresql"
+    service_action: "restart" # restart, start, stop
+    validate_post_restart: true
+    email_to: "lab.automation.tech@gmail.com"
+    report_path: "/tmp/service_restart_report_{{ ansible_date_time.epoch }}.html"
+
+  tasks:
+    # ========== VALIDACIÓN INICIAL ==========
+    - name: "VALIDACIÓN - Verificar que el servicio existe"
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+      register: service_exists
+      failed_when: false
+      check_mode: true
+
+    - name: "VALIDACIÓN - Abortar si el servicio no existe"
+      ansible.builtin.fail:
+        msg: "El servicio {{ service_name }} no existe en el sistema"
+      when: service_exists.status is not defined
+
+    # ========== CAPTURA ESTADO ANTES ==========
+    - name: "ANTES - Capturar estado del servicio"
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+      register: service_before
+      failed_when: false
+
+    - name: "ANTES - Obtener status detallado"
+      ansible.builtin.shell: |
+        set -o pipefail
+        systemctl status {{ service_name }} --no-pager -l || true
+      register: status_before
+      changed_when: false
+
+    - name: "ANTES - Verificar si está activo"
+      ansible.builtin.set_fact:
+        was_active: "{{ service_before.status.ActiveState == 'active' }}"
+        was_running: "{{ service_before.status.SubState == 'running' }}"
+        before_state: "{{ service_before.status.ActiveState }}"
+        before_substate: "{{ service_before.status.SubState }}"
+
+    - name: "ANTES - Capturar últimas líneas del log"
+      ansible.builtin.shell: |
+        set -o pipefail
+        journalctl -u {{ service_name }} -n 20 --no-pager || true
+      register: logs_before
+      changed_when: false
+
+    # ========== EJECUCIÓN DEL RESTART ==========
+    - name: "ACCIÓN - {{ service_action | upper }}"
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        state: "{{ 'restarted' if service_action == 'restart' else service_action + 'ed' }}"
+        enabled: true
+      register: service_action_result
+
+    - name: "ACCIÓN - Esperar 5 segundos para estabilización"
+      ansible.builtin.pause:
+        seconds: 5
+
+    # ========== CAPTURA ESTADO DESPUÉS ==========
+    - name: "DESPUÉS - Capturar estado del servicio"
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+      register: service_after
+      failed_when: false
+
+    - name: "DESPUÉS - Obtener status detallado"
+      ansible.builtin.shell: |
+        set -o pipefail
+        systemctl status {{ service_name }} --no-pager -l || true
+      register: status_after
+      changed_when: false
+
+    - name: "DESPUÉS - Verificar si está activo"
+      ansible.builtin.set_fact:
+        is_active: "{{ service_after.status.ActiveState == 'active' }}"
+        is_running: "{{ service_after.status.SubState == 'running' }}"
+        after_state: "{{ service_after.status.ActiveState }}"
+        after_substate: "{{ service_after.status.SubState }}"
+
+    - name: "DESPUÉS - Capturar últimas líneas del log"
+      ansible.builtin.shell: |
+        set -o pipefail
+        journalctl -u {{ service_name }} -n 20 --no-pager || true
+      register: logs_after
+      changed_when: false
+
+    # ========== VALIDACIÓN POST-RESTART ==========
+    - name: "VALIDACIÓN - Verificar que el servicio está corriendo"
+      ansible.builtin.assert:
+        that:
+          - is_active
+          - is_running
+        fail_msg: "El servicio {{ service_name }} NO está corriendo después del {{ service_action }}"
+        success_msg: "El servicio {{ service_name }} está corriendo correctamente"
+      when: validate_post_restart
+
+    # ========== CALCULAR MÉTRICAS ==========
+    - name: "MÉTRICAS - Calcular resultado de la acción"
+      ansible.builtin.set_fact:
+        action_successful: "{{ is_active and is_running }}"
+        state_changed: "{{ before_state != after_state }}"
+        action_result_text: "{{ 'Exitoso - Servicio restaurado' if (is_active and is_running) else 'Fallido - Servicio aún caído' }}"
+
+    # ========== GENERAR REPORTE HTML ==========
+    - name: "REPORTE - Generar HTML desde template"
+      ansible.builtin.template:
+        src: templates/reporte_service_restart.html.j2
+        dest: "{{ report_path }}"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_gid }}"
+        mode: "0644"
+      delegate_to: localhost
+
+    # ========== ENVIAR EMAIL ==========
+    - name: "EMAIL - Enviar reporte ejecutivo"
+      community.general.mail:
+        host: "{{ email_smtp_host | default('smtp.gmail.com') }}"
+        port: "{{ email_smtp_port | default(587) }}"
+        username: "{{ email_smtp_user }}"
+        password: "{{ email_smtp_password }}"
+        to: "{{ email_to }}"
+        from: "{{ email_smtp_user }}"
+        subject: "{{ '✅' if action_successful else '❌' }} Restart de Servicio - {{ service_name }} en {{ inventory_hostname }}"
+        subtype: html
+        secure: starttls
+        body: "{{ lookup('file', report_path) }}"
+      delegate_to: localhost
+      when: email_smtp_user is defined
+
+    # ========== RESUMEN FINAL ==========
+    - name: "RESUMEN - Mostrar resultado"
+      ansible.builtin.debug:
+        msg:
+          - "========================================="
+          - "RESTART DE SERVICIO COMPLETADO"
+          - "========================================="
+          - "Servidor: {{ inventory_hostname }}"
+          - "Servicio: {{ service_name }}"
+          - "Acción: {{ service_action }}"
+          - "Estado ANTES: {{ before_state }} ({{ before_substate }})"
+          - "Estado DESPUÉS: {{ after_state }} ({{ after_substate }})"
+          - "Resultado: {{ action_result_text }}"
+          - "Reporte generado: {{ report_path }}"
+          - "========================================="

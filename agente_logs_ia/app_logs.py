@@ -2,6 +2,8 @@ import streamlit as st
 import anthropic
 import os
 import sys
+import json
+import re
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -19,7 +21,6 @@ try:
     AWX_AVAILABLE = True
 except ImportError:
     AWX_AVAILABLE = False
-    st.warning("Módulo AWX no disponible. Instalando dependencias...")
 
 # Configuración de la página
 st.set_page_config(
@@ -36,17 +37,21 @@ def get_client():
 client = get_client()
 
 # Inicializar session state
-if "job_launched" not in st.session_state:
-    st.session_state.job_launched = False
-    st.session_state.job_id = None
-    st.session_state.playbook_suggested = None
+if "analisis_resultado" not in st.session_state:
+    st.session_state.analisis_resultado = None
+    st.session_state.variables_extraidas = {}
+    st.session_state.playbook_sugerido = None
 
 # Base de conocimiento de playbooks
 PLAYBOOKS = """
 === PLAYBOOKS ANSIBLE DISPONIBLES ===
 
 1. disk_cleanup.yml - Limpieza automática de disco con reporte
-   Variables: target_host, cleanup_paths, retention_days, email_to
+   Variables requeridas:
+   - target_host: Servidor donde ejecutar
+   - cleanup_paths: Lista de rutas a limpiar
+   - retention_days: Días de retención de archivos
+   - email_to: Email para reporte ejecutivo
    
 2. oracle_health_check.yml - Diagnóstico Oracle
 3. oracle_archivelog_cleanup.yml - Limpieza archivelog
@@ -56,28 +61,38 @@ PLAYBOOKS = """
 7. sql_server_hardening.yml - Hardening SQL Server
 """
 
-def analizar_log(log_content):
-    """Analiza log y sugiere playbook"""
+def analizar_log_y_extraer_variables(log_content):
+    """Analiza log y extrae variables automáticamente"""
+    
     prompt = f"""Eres un experto en operaciones TI con Ansible Automation Platform (AAP/AWX).
 
-LOG:
+LOG A ANALIZAR:
 {log_content}
 
-PLAYBOOKS:
+PLAYBOOKS DISPONIBLES:
 {PLAYBOOKS}
 
-Analiza y proporciona:
+Realiza un análisis completo y responde en formato JSON con esta estructura EXACTA:
 
-1. **DIAGNÓSTICO** (2-3 líneas concisas)
-2. **SEVERIDAD** (Crítico/Alto/Medio/Bajo)
-3. **PLAYBOOK RECOMENDADO** 
-   - Nombre exacto del playbook
-   - Por qué es el indicado
-4. **VARIABLES REQUERIDAS**
-   - Lista las variables que necesita el playbook
-5. **VERIFICACIÓN POST-EJECUCIÓN**
+{{
+  "diagnostico": "Descripción técnica del problema en 2-3 líneas",
+  "severidad": "Crítico|Alto|Medio|Bajo",
+  "playbook_recomendado": "nombre_exacto_del_playbook.yml",
+  "razon_playbook": "Por qué este playbook es el indicado",
+  "variables_extraidas": {{
+    "target_host": "hostname extraído del log o 'localhost' si no se identifica",
+    "cleanup_paths": ["ruta1", "ruta2"],
+    "retention_days": 7,
+    "email_to": "manager@example.com"
+  }},
+  "verificacion": "Qué revisar después de la ejecución"
+}}
 
-Responde en español, técnico pero claro. Sin emojis."""
+IMPORTANTE:
+- Para disk_cleanup.yml extrae las rutas que están llenas del log
+- Si ves "/var/log" o "/tmp" llenos, inclúyelos en cleanup_paths
+- Detecta el servidor desde el hostname en el log
+- Responde SOLO con el JSON, sin texto adicional"""
 
     try:
         response = client.messages.create(
@@ -85,9 +100,81 @@ Responde en español, técnico pero claro. Sin emojis."""
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
-        return response.content[0].text
+        
+        respuesta_texto = response.content[0].text
+        
+        # Limpiar respuesta (quitar markdown si existe)
+        respuesta_texto = respuesta_texto.strip()
+        if respuesta_texto.startswith("```json"):
+            respuesta_texto = respuesta_texto.split("```json")[1].split("```")[0].strip()
+        elif respuesta_texto.startswith("```"):
+            respuesta_texto = respuesta_texto.split("```")[1].split("```")[0].strip()
+        
+        # Parsear JSON
+        resultado = json.loads(respuesta_texto)
+        return resultado, None
+        
+    except json.JSONDecodeError as e:
+        # Fallback: devolver análisis en texto si falla el JSON
+        return None, respuesta_texto
     except Exception as e:
-        return f"Error: {str(e)}"
+        return None, f"Error: {str(e)}"
+
+def formatear_analisis_visual(resultado):
+    """Formatea el resultado del análisis para mostrar visualmente"""
+    
+    if isinstance(resultado, dict):
+        html = f"""
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
+            <h3 style="color: #1f2937; margin-bottom: 15px;">📊 ANÁLISIS DEL INCIDENTE</h3>
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #4b5563; margin-bottom: 8px;">1. DIAGNÓSTICO</h4>
+                <p style="line-height: 1.6; color: #1f2937; background-color: white; padding: 12px; border-radius: 6px;">
+                    {resultado.get('diagnostico', 'No disponible')}
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #4b5563; margin-bottom: 8px;">2. SEVERIDAD</h4>
+                <span style="background-color: {'#fee2e2' if resultado.get('severidad') == 'Crítico' else '#dbeafe'}; 
+                             color: {'#991b1b' if resultado.get('severidad') == 'Crítico' else '#1e40af'}; 
+                             padding: 6px 12px; border-radius: 6px; font-weight: 600;">
+                    {resultado.get('severidad', 'No determinada')}
+                </span>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #4b5563; margin-bottom: 8px;">3. PLAYBOOK RECOMENDADO</h4>
+                <p style="background-color: white; padding: 12px; border-radius: 6px;">
+                    <code style="background-color: #1f2937; color: #10b981; padding: 4px 8px; border-radius: 4px;">
+                        {resultado.get('playbook_recomendado', 'No determinado')}
+                    </code>
+                </p>
+                <p style="color: #6b7280; margin-top: 8px; font-style: italic;">
+                    {resultado.get('razon_playbook', '')}
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #4b5563; margin-bottom: 8px;">4. VARIABLES DETECTADAS</h4>
+                <div style="background-color: white; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px;">
+                    {json.dumps(resultado.get('variables_extraidas', {}), indent=2)}
+                </div>
+            </div>
+            
+            <div>
+                <h4 style="color: #4b5563; margin-bottom: 8px;">5. VERIFICACIÓN POST-EJECUCIÓN</h4>
+                <p style="line-height: 1.6; color: #1f2937; background-color: white; padding: 12px; border-radius: 6px;">
+                    {resultado.get('verificacion', 'No especificada')}
+                </p>
+            </div>
+        </div>
+        """
+        return html
+    else:
+        # Fallback para texto plano
+        return f"<div style='background-color: #f8f9fa; padding: 20px; border-radius: 10px;'><pre>{resultado}</pre></div>"
 
 def ejecutar_playbook_awx(playbook_name, variables):
     """Ejecuta playbook en AWX"""
@@ -119,7 +206,7 @@ def ejecutar_playbook_awx(playbook_name, variables):
 # ==================== INTERFAZ ====================
 
 st.title("Agente IA - Análisis de Logs + Ejecución Automática")
-st.markdown("**Análisis inteligente con capacidad de ejecución en AWX**")
+st.markdown("**Análisis inteligente con extracción automática de variables**")
 
 # Sidebar
 with st.sidebar:
@@ -127,24 +214,31 @@ with st.sidebar:
     
     # Status AWX
     if AWX_AVAILABLE:
-        st.success("✅ Conexión AWX: Activa")
+        st.success("Conexión AWX: Activa")
     else:
-        st.error("❌ Conexión AWX: No disponible")
+        st.error("Conexión AWX: No disponible")
     
     st.markdown("---")
     
     st.markdown("""
     **Capacidades:**
     - Análisis inteligente de logs
-    - Sugerencia de playbooks
+    - Extracción automática de variables
     - Ejecución automática en AWX
     - Reporte ejecutivo por email
     
-    **Playbooks con Ejecución:**
+    **Playbooks Disponibles:**
     - disk_cleanup.yml
     - oracle_health_check.yml
     - weblogic_restart.yml
     """)
+    
+    st.markdown("---")
+    
+    # Mostrar variables extraídas si existen
+    if st.session_state.variables_extraidas:
+        st.info("**Variables Auto-Detectadas:**")
+        st.json(st.session_state.variables_extraidas)
     
     st.markdown("---")
     st.markdown("**Desarrollado por:** NTT Data Automation Team")
@@ -157,26 +251,34 @@ with tab1:
     log_input = st.text_area(
         "Log de error:",
         height=300,
-        placeholder="Pega aquí el contenido del log..."
+        placeholder="Pega aquí el contenido del log que deseas analizar..."
     )
     
     col1, col2 = st.columns([1, 5])
     with col1:
-        if st.button("Analizar", type="primary", use_container_width=True):
+        if st.button("🔍 Analizar", type="primary", use_container_width=True):
             if log_input:
-                with st.spinner("Analizando log con IA..."):
-                    resultado = analizar_log(log_input)
-                    st.success("✅ Análisis completado")
-                    st.markdown("---")
-                    st.markdown(resultado)
+                with st.spinner("🤖 Analizando log con IA y extrayendo variables..."):
+                    resultado, error = analizar_log_y_extraer_variables(log_input)
                     
-                    # Detectar playbook sugerido
-                    if "disk_cleanup" in resultado.lower():
-                        st.session_state.playbook_suggested = "disk_cleanup"
-                        st.info("💡 Playbook detectado: **disk_cleanup.yml** - Puedes ejecutarlo en la pestaña 'Ejecutar Playbook'")
+                    if resultado:
+                        st.session_state.analisis_resultado = resultado
+                        st.session_state.variables_extraidas = resultado.get('variables_extraidas', {})
+                        st.session_state.playbook_sugerido = resultado.get('playbook_recomendado', '').replace('.yml', '')
+                        
+                        st.success("✅ Análisis completado - Variables extraídas automáticamente")
+                        st.markdown("---")
+                        st.markdown(formatear_analisis_visual(resultado), unsafe_allow_html=True)
+                        
+                        st.info("💡 Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
+                    else:
+                        st.error(f"❌ Error en análisis: {error}")
     
     with col2:
-        if st.button("🗑️ Limpiar", use_container_width=True):
+        if st.button("Limpiar", use_container_width=True):
+            st.session_state.analisis_resultado = None
+            st.session_state.variables_extraidas = {}
+            st.session_state.playbook_sugerido = None
             st.rerun()
 
 with tab2:
@@ -191,31 +293,43 @@ with tab2:
         ]
     )
     
+    # Rutas absolutas
+    logs_dir = Path(__file__).parent / "logs_ejemplo"
+    
     logs_map = {
-        "Linux - Disco Lleno": "logs_ejemplo/linux_disk_full.log",
-        "Oracle - Error ORA-00257 (Archivelog Full)": "logs_ejemplo/oracle_error.log",
-        "WebLogic - OutOfMemoryError": "logs_ejemplo/weblogic_error.log"
+        "Linux - Disco Lleno": logs_dir / "linux_disk_full.log",
+        "Oracle - Error ORA-00257 (Archivelog Full)": logs_dir / "oracle_error.log",
+        "WebLogic - OutOfMemoryError": logs_dir / "weblogic_error.log"
     }
     
+    ruta_log = logs_map[ejemplo]
+    
     try:
-        with open(logs_map[ejemplo], 'r') as f:
+        with open(ruta_log, 'r', encoding='utf-8') as f:
             contenido = f.read()
         
         st.code(contenido, language="log")
         
         if st.button("Analizar Este Ejemplo", type="primary"):
-            with st.spinner("Analizando..."):
-                resultado = analizar_log(contenido)
-                st.success("✅ Análisis completado")
-                st.markdown("---")
-                st.markdown(resultado)
+            with st.spinner("Analizando log con IA y extrayendo variables..."):
+                resultado, error = analizar_log_y_extraer_variables(contenido)
                 
-                if "disk_cleanup" in resultado.lower() or "disco lleno" in ejemplo.lower():
-                    st.session_state.playbook_suggested = "disk_cleanup"
-                    st.info("Ve a la pestaña 'Ejecutar Playbook' para lanzar disk_cleanup.yml")
+                if resultado:
+                    st.session_state.analisis_resultado = resultado
+                    st.session_state.variables_extraidas = resultado.get('variables_extraidas', {})
+                    st.session_state.playbook_sugerido = resultado.get('playbook_recomendado', '').replace('.yml', '')
+                    
+                    st.success("Análisis completado - Variables extraídas automáticamente")
+                    st.markdown("---")
+                    st.markdown(formatear_analisis_visual(resultado), unsafe_allow_html=True)
+                    
+                    st.info("Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
+                else:
+                    st.error(f"Error: {error}")
     
     except FileNotFoundError:
-        st.error(f"Archivo no encontrado: {logs_map[ejemplo]}")
+        st.error(f"Archivo no encontrado: {ruta_log}")
+        st.info("Verifica que los archivos de logs existan en la carpeta logs_ejemplo/")
 
 with tab3:
     st.subheader("Ejecutar Playbook en AWX")
@@ -223,29 +337,49 @@ with tab3:
     if not AWX_AVAILABLE:
         st.error("Cliente AWX no disponible. Verifica la configuración.")
     else:
+        # Auto-seleccionar playbook si fue sugerido
+        playbook_options = ["disk_cleanup"]
+        default_index = 0
+        
+        if st.session_state.playbook_sugerido in playbook_options:
+            default_index = playbook_options.index(st.session_state.playbook_sugerido)
+        
         playbook_select = st.selectbox(
             "Playbook a ejecutar:",
-            ["disk_cleanup"],
-            help="Más playbooks próximamente"
+            playbook_options,
+            index=default_index,
+            help="Playbook sugerido por el análisis de IA"
         )
         
         st.markdown("---")
         st.markdown("### Configuración de Variables")
         
         if playbook_select == "disk_cleanup":
+            # Usar variables extraídas o valores por defecto
+            vars_default = st.session_state.variables_extraidas if st.session_state.variables_extraidas else {
+                "target_host": "localhost",
+                "cleanup_paths": ["/var/log", "/tmp"],
+                "retention_days": 7,
+                "email_to": "manager@example.com"
+            }
+            
             col1, col2 = st.columns(2)
             
             with col1:
                 target_host = st.text_input(
                     "Servidor destino:",
-                    value="localhost",
-                    help="Hostname o IP del servidor"
+                    value=vars_default.get("target_host", "localhost"),
+                    help="Auto-detectado desde el log" if st.session_state.variables_extraidas else "Hostname o IP del servidor"
                 )
+                
+                # Convertir lista a texto con saltos de línea
+                paths_default = "\n".join(vars_default.get("cleanup_paths", ["/var/log", "/tmp"]))
                 
                 cleanup_paths = st.text_area(
                     "Rutas a limpiar (una por línea):",
-                    value="/var/log\n/tmp",
-                    height=100
+                    value=paths_default,
+                    height=100,
+                    help="Auto-detectadas desde el log" if st.session_state.variables_extraidas else "Rutas del filesystem"
                 )
             
             with col2:
@@ -253,15 +387,19 @@ with tab3:
                     "Días de retención:",
                     min_value=1,
                     max_value=90,
-                    value=7,
+                    value=vars_default.get("retention_days", 7),
                     help="Archivos más antiguos serán eliminados"
                 )
                 
                 email_to = st.text_input(
                     "Email para reporte:",
-                    value="manager@example.com",
-                    help="Destinatario del reporte HTML"
+                    value=vars_default.get("email_to", "manager@example.com"),
+                    help="Destinatario del reporte HTML ejecutivo"
                 )
+            
+            # Mostrar alerta si las variables fueron auto-detectadas
+            if st.session_state.variables_extraidas:
+                st.success("**Variables pre-cargadas automáticamente desde el análisis de IA**")
             
             st.markdown("---")
             
@@ -281,8 +419,6 @@ with tab3:
                     job_id, message = ejecutar_playbook_awx("disk_cleanup", extra_vars)
                     
                     if job_id:
-                        st.session_state.job_launched = True
-                        st.session_state.job_id = job_id
                         st.success(f"✅ {message}")
                         st.info(f"**Job ID:** {job_id}")
                         
@@ -292,7 +428,7 @@ with tab3:
                             status = awx.wait_for_job(job_id, timeout=300)
                         
                         if status["status"] == "successful":
-                            st.success("**JOB COMPLETADO EXITOSAMENTE**")
+                            st.success("✅ **JOB COMPLETADO EXITOSAMENTE**")
                             st.balloons()
                             
                             # Mostrar output
@@ -300,7 +436,14 @@ with tab3:
                                 output = awx.get_job_output(job_id)
                                 st.code(output, language="bash")
                             
-                            st.info(f"Reporte HTML enviado a: **{email_to}**")
+                            st.info(f"📧 Reporte HTML enviado a: **{email_to}**")
+                            
+                            # Resetear variables
+                            if st.button("🔄 Nuevo Análisis"):
+                                st.session_state.analisis_resultado = None
+                                st.session_state.variables_extraidas = {}
+                                st.session_state.playbook_sugerido = None
+                                st.rerun()
                         
                         elif status["status"] == "failed":
                             st.error("**JOB FALLÓ**")
@@ -311,7 +454,7 @@ with tab3:
                             st.warning(f"Status: {status['status']}")
                     
                     else:
-                        st.error(f"❌ {message}")
+                        st.error(f"{message}")
 
 # Footer
 st.markdown("---")

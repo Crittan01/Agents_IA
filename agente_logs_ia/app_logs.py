@@ -121,60 +121,63 @@ IMPORTANTE:
         return None, f"Error: {str(e)}"
 
 def formatear_analisis_visual(resultado):
-    """Formatea el resultado del análisis para mostrar visualmente"""
+    """Formatea el resultado del análisis para mostrar visualmente usando componentes Streamlit"""
     
-    if isinstance(resultado, dict):
-        html = f"""
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
-            <h3 style="color: #1f2937; margin-bottom: 15px;">ANÁLISIS DEL INCIDENTE</h3>
-            
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #4b5563; margin-bottom: 8px;">1. DIAGNÓSTICO</h4>
-                <p style="line-height: 1.6; color: #1f2937; background-color: white; padding: 12px; border-radius: 6px;">
-                    {resultado.get('diagnostico', 'No disponible')}
-                </p>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #4b5563; margin-bottom: 8px;">2. SEVERIDAD</h4>
-                <span style="background-color: {'#fee2e2' if resultado.get('severidad') == 'Crítico' else '#dbeafe'}; 
-                             color: {'#991b1b' if resultado.get('severidad') == 'Crítico' else '#1e40af'}; 
-                             padding: 6px 12px; border-radius: 6px; font-weight: 600;">
-                    {resultado.get('severidad', 'No determinada')}
-                </span>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #4b5563; margin-bottom: 8px;">3. PLAYBOOK RECOMENDADO</h4>
-                <p style="background-color: white; padding: 12px; border-radius: 6px;">
-                    <code style="background-color: #1f2937; color: #10b981; padding: 4px 8px; border-radius: 4px;">
-                        {resultado.get('playbook_recomendado', 'No determinado')}
-                    </code>
-                </p>
-                <p style="color: #6b7280; margin-top: 8px; font-style: italic;">
-                    {resultado.get('razon_playbook', '')}
-                </p>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #4b5563; margin-bottom: 8px;">4. VARIABLES DETECTADAS</h4>
-                <div style="background-color: white; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px;">
-                    {json.dumps(resultado.get('variables_extraidas', {}), indent=2)}
-                </div>
-            </div>
-            
-            <div>
-                <h4 style="color: #4b5563; margin-bottom: 8px;">5. VERIFICACIÓN POST-EJECUCIÓN</h4>
-                <p style="line-height: 1.6; color: #1f2937; background-color: white; padding: 12px; border-radius: 6px;">
-                    {resultado.get('verificacion', 'No especificada')}
-                </p>
-            </div>
-        </div>
-        """
-        return html
-    else:
+    if not isinstance(resultado, dict):
         # Fallback para texto plano
-        return f"<div style='background-color: #f8f9fa; padding: 20px; border-radius: 10px;'><pre>{resultado}</pre></div>"
+        st.code(str(resultado), language="text")
+        return
+    
+    # Contenedor principal con estilo
+    with st.container():
+        # Header
+        st.markdown("### 📊 ANÁLISIS DEL INCIDENTE")
+        st.markdown("---")
+        
+        # 1. DIAGNÓSTICO
+        st.markdown("#### 1. DIAGNÓSTICO")
+        diagnostico = resultado.get('diagnostico', 'No disponible')
+        st.info(diagnostico)
+        
+        # 2. SEVERIDAD
+        st.markdown("#### 2. SEVERIDAD")
+        severidad = resultado.get('severidad', 'No determinada')
+        
+        # Color según severidad
+        if severidad.lower() == 'crítico':
+            st.error(f"🔴 **{severidad}**")
+        elif severidad.lower() == 'alto':
+            st.warning(f"🟠 **{severidad}**")
+        elif severidad.lower() == 'medio':
+            st.info(f"🟡 **{severidad}**")
+        else:
+            st.success(f"🟢 **{severidad}**")
+        
+        # 3. PLAYBOOK RECOMENDADO
+        st.markdown("#### 3. PLAYBOOK RECOMENDADO")
+        playbook = resultado.get('playbook_recomendado', 'No determinado')
+        razon = resultado.get('razon_playbook', '')
+        
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.code(playbook, language="yaml")
+        with col2:
+            st.markdown(f"*{razon}*")
+        
+        # 4. VARIABLES DETECTADAS
+        st.markdown("#### 4. VARIABLES DETECTADAS")
+        variables = resultado.get('variables_extraidas', {})
+        
+        if variables:
+            # Mostrar en tabla bonita
+            st.json(variables)
+        else:
+            st.warning("No se detectaron variables automáticamente")
+        
+        # 5. VERIFICACIÓN
+        st.markdown("#### 5. VERIFICACIÓN POST-EJECUCIÓN")
+        verificacion = resultado.get('verificacion', 'No especificada')
+        st.success(verificacion)
 
 def ejecutar_playbook_awx(playbook_name, variables):
     """Ejecuta playbook en AWX"""
@@ -268,9 +271,9 @@ with tab1:
                         
                         st.success("Análisis completado - Variables extraídas automáticamente")
                         st.markdown("---")
-                        st.markdown(formatear_analisis_visual(resultado), unsafe_allow_html=True)
+                        formatear_analisis_visual(resultado)
                         
-                        st.info("💡 Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
+                        st.info("Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
                     else:
                         st.error(f"Error en análisis: {error}")
     
@@ -321,7 +324,7 @@ with tab2:
                     
                     st.success("Análisis completado - Variables extraídas automáticamente")
                     st.markdown("---")
-                    st.markdown(formatear_analisis_visual(resultado), unsafe_allow_html=True)
+                    formatear_analisis_visual(resultado)
                     
                     st.info("Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
                 else:

@@ -126,7 +126,7 @@ def formatear_analisis_visual(resultado):
     if isinstance(resultado, dict):
         html = f"""
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
-            <h3 style="color: #1f2937; margin-bottom: 15px;">📊 ANÁLISIS DEL INCIDENTE</h3>
+            <h3 style="color: #1f2937; margin-bottom: 15px;">ANÁLISIS DEL INCIDENTE</h3>
             
             <div style="margin-bottom: 20px;">
                 <h4 style="color: #4b5563; margin-bottom: 8px;">1. DIAGNÓSTICO</h4>
@@ -256,9 +256,9 @@ with tab1:
     
     col1, col2 = st.columns([1, 5])
     with col1:
-        if st.button("🔍 Analizar", type="primary", use_container_width=True):
+        if st.button("Analizar", type="primary", use_container_width=True):
             if log_input:
-                with st.spinner("🤖 Analizando log con IA y extrayendo variables..."):
+                with st.spinner("Analizando log con IA y extrayendo variables..."):
                     resultado, error = analizar_log_y_extraer_variables(log_input)
                     
                     if resultado:
@@ -266,13 +266,13 @@ with tab1:
                         st.session_state.variables_extraidas = resultado.get('variables_extraidas', {})
                         st.session_state.playbook_sugerido = resultado.get('playbook_recomendado', '').replace('.yml', '')
                         
-                        st.success("✅ Análisis completado - Variables extraídas automáticamente")
+                        st.success("Análisis completado - Variables extraídas automáticamente")
                         st.markdown("---")
                         st.markdown(formatear_analisis_visual(resultado), unsafe_allow_html=True)
                         
                         st.info("💡 Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
                     else:
-                        st.error(f"❌ Error en análisis: {error}")
+                        st.error(f"Error en análisis: {error}")
     
     with col2:
         if st.button("Limpiar", use_container_width=True):
@@ -360,7 +360,7 @@ with tab3:
                 "target_host": "localhost",
                 "cleanup_paths": ["/var/log", "/tmp"],
                 "retention_days": 7,
-                "email_to": "manager@example.com"
+                "email_to": "lab.automation.tech@gmail.com"
             }
             
             col1, col2 = st.columns(2)
@@ -393,7 +393,7 @@ with tab3:
                 
                 email_to = st.text_input(
                     "Email para reporte:",
-                    value=vars_default.get("email_to", "manager@example.com"),
+                    value=vars_default.get("email_to", "lab.automation.tech@gmail.com"),
                     help="Destinatario del reporte HTML ejecutivo"
                 )
             
@@ -419,7 +419,7 @@ with tab3:
                     job_id, message = ejecutar_playbook_awx("disk_cleanup", extra_vars)
                     
                     if job_id:
-                        st.success(f"✅ {message}")
+                        st.success(f"{message}")
                         st.info(f"**Job ID:** {job_id}")
                         
                         # Monitorear job
@@ -428,7 +428,7 @@ with tab3:
                             status = awx.wait_for_job(job_id, timeout=300)
                         
                         if status["status"] == "successful":
-                            st.success("✅ **JOB COMPLETADO EXITOSAMENTE**")
+                            st.success("**JOB COMPLETADO EXITOSAMENTE**")
                             st.balloons()
                             
                             # Mostrar output

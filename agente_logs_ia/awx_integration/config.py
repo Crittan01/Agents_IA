@@ -14,14 +14,14 @@ AWX_CONFIG = {
 # Job Templates configurados en AWX
 JOB_TEMPLATES = {
     "disk_cleanup": {
-        "name": "Disk Cleanup - Agente IA",  # Nombre en AWX
-        "id": None,  # Se obtiene automáticamente
-        "required_vars": [
-            "target_host",      # Servidor donde ejecutar
-            "cleanup_paths",    # Rutas a limpiar (lista)
-            "retention_days",   # Días de retención
-            "email_to"          # Email para reporte
-        ]
+        "name": "Disk Cleanup - Agente IA",
+        "id": None,
+        "required_vars": ["target_host", "cleanup_paths", "retention_days", "email_to"]
+    },
+    "service_restart": {
+        "name": "Service Restart - Agente IA",
+        "id": None,
+        "required_vars": ["target_host", "service_name", "service_action", "email_to"]
     }
 }
 

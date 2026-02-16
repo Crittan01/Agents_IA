@@ -1,0 +1,12 @@
+####<Jan 19, 2025 3:15:42 PM COT> <Error> <HTTP> <srvweblogic01> <AdminServer> 
+<[ACTIVE] ExecuteThread: '15' for queue: 'weblogic.kernel.Default (self-tuning)'> 
+<<WLS Kernel>> <> <> <1705689342123> <BEA-101017>
+<[ServletContext@1234567890[app:myapp module:myapp.war path:null spec-version:3.1]] 
+Root cause of ServletException.
+java.lang.OutOfMemoryError: Java heap space
+        at java.util.Arrays.copyOf(Arrays.java:3332)
+        at java.lang.AbstractStringBuilder.ensureCapacityInternal(AbstractStringBuilder.java:124)
+        at com.myapp.service.DataProcessor.processLargeDataset(DataProcessor.java:156)
+2025-01-19 15:15:43 [ERROR] Application 'myapp' became unstable
+2025-01-19 15:15:43 [WARN] Heap usage: 98% (7.8 GB of 8 GB)
+2025-01-19 15:15:44 [ERROR] Server health state changed to FAILED

@@ -1,0 +1,7 @@
+Jan 19 10:22:15 srvlinux01 kernel: [12345.678901] EXT4-fs warning (device sda1): ext4_dx_add_entry:2262: Directory index full!
+Jan 19 10:22:16 srvlinux01 systemd[1]: tmp.mount: Unit entered failed state.
+Jan 19 10:22:16 srvlinux01 kernel: [12345.679123] No space left on device
+Jan 19 10:22:17 srvlinux01 postgres[2345]: ERROR: could not write to file "/var/log/postgresql/postgresql.log": No space left on device
+Jan 19 10:22:18 srvlinux01 systemd[1]: Failed to create directory /var/log/journal: No space left on device
+Jan 19 10:22:19 srvlinux01 sshd[5678]: error: write_log: No space left on device
+Jan 19 10:22:20 srvlinux01 cron[9012]: (root) FAILED to write to /var/spool/cron/root (No space left on device)

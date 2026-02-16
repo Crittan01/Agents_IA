@@ -439,7 +439,7 @@ with tab3:
                         
                         # Monitorear job
                         awx = AWXClient()
-                        with st.spinner("⏳ Esperando que el job termine..."):
+                        with st.spinner("Esperando que el job termine..."):
                             status = awx.wait_for_job(job_id, timeout=300)
                         
                         if status["status"] == "successful":

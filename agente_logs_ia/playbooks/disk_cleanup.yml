@@ -8,7 +8,7 @@
 
   vars:
     email_smtp_user: "lab.automation.tech@gmail.com"
-    email_smtp_password: "Lj3635084*"
+    email_smtp_password: "criTAN*"
 
     # Variables por defecto (se pueden sobreescribir)
     cleanup_paths:

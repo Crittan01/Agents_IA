@@ -184,13 +184,13 @@ def formatear_analisis_visual(resultado):
         
         # Color según severidad
         if severidad.lower() == 'crítico':
-            st.error(f"🔴 **{severidad}**")
+            st.error(f"**{severidad}**")
         elif severidad.lower() == 'alto':
-            st.warning(f"🟠 **{severidad}**")
+            st.warning(f"**{severidad}**")
         elif severidad.lower() == 'medio':
-            st.info(f"🟡 **{severidad}**")
+            st.info(f"**{severidad}**")
         else:
-            st.success(f"🟢 **{severidad}**")
+            st.success(f"**{severidad}**")
         
         # 3. PLAYBOOK RECOMENDADO
         st.markdown("#### 3. PLAYBOOK RECOMENDADO")
@@ -253,7 +253,7 @@ def ejecutar_playbook_awx(playbook_name, variables):
 
 # ==================== INTERFAZ ====================
 
-st.title("Agente IA - Análisis de Logs + Ejecución Automática")
+st.title("Agente IA - Análisis de Logs + Ejecución")
 st.markdown("**Análisis inteligente con extracción automática de variables**")
 
 # Sidebar
@@ -317,7 +317,7 @@ with tab1:
     
     # RESULTADO FUERA DE LAS COLUMNAS (ancho completo)
     if analizar_btn and log_input:
-        with st.spinner("Analizando log con IA y extrayendo variables..."):
+        with st.spinner("Analizando log con Agente IA y extrayendo variables..."):
             resultado, error = analizar_log_y_extraer_variables(log_input)
             
             if resultado:
@@ -493,14 +493,14 @@ with tab3:
                             st.balloons()
                             
                             # Mostrar output
-                            with st.expander("📄 Ver Output del Job", expanded=True):
+                            with st.expander("Ver Output del Job", expanded=True):
                                 output = awx.get_job_output(job_id)
                                 st.code(output, language="bash")
                             
-                            st.info(f"📧 Reporte HTML enviado a: **{email_to}**")
+                            st.info(f"Reporte HTML enviado a: **{email_to}**")
                             
                             # Resetear variables
-                            if st.button("🔄 Nuevo Análisis"):
+                            if st.button("Nuevo Análisis"):
                                 st.session_state.analisis_resultado = None
                                 st.session_state.variables_extraidas = {}
                                 st.session_state.playbook_sugerido = None

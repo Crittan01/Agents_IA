@@ -126,6 +126,7 @@
         group: "{{ ansible_user_gid }}"
         mode: "0644"
       delegate_to: localhost
+      become: false
 
     # ========== ENVIAR EMAIL ==========
     - name: "EMAIL - Enviar reporte ejecutivo"

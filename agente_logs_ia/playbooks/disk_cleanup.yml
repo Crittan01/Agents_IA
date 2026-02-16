@@ -7,6 +7,9 @@
   gather_facts: true
 
   vars:
+    email_smtp_user: "lab.automation.tech@gmail.com"
+    email_smtp_password: "Lj3635084*"
+
     # Variables por defecto (se pueden sobreescribir)
     cleanup_paths:
       - /var/log
@@ -137,7 +140,6 @@
         subtype: html
         body: "{{ lookup('file', report_path) }}"
       delegate_to: localhost
-      become: false # ← CRÍTICO: Deshabilitar become para localhost
       when: email_smtp_user is defined
 
     - name: "RESUMEN - Mostrar resultado"

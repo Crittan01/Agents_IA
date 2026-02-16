@@ -170,7 +170,7 @@ def formatear_analisis_visual(resultado):
     # Contenedor principal con estilo
     with st.container():
         # Header
-        st.markdown("### 📊 ANÁLISIS DEL INCIDENTE")
+        st.markdown("### ANÁLISIS DEL INCIDENTE")
         st.markdown("---")
         
         # 1. DIAGNÓSTICO
@@ -220,7 +220,7 @@ def formatear_analisis_visual(resultado):
         
         # 6. PROBLEMAS ADICIONALES (NUEVO)
         if 'problemas_adicionales' in resultado and resultado['problemas_adicionales']:
-            st.markdown("#### 6. ⚠️ PROBLEMAS ADICIONALES DETECTADOS")
+            st.markdown("#### 6. PROBLEMAS ADICIONALES DETECTADOS")
             st.warning(resultado['problemas_adicionales'])
             st.info("💡 **Recomendación:** Después de resolver el problema principal, considera ejecutar playbooks adicionales para estos problemas")
 

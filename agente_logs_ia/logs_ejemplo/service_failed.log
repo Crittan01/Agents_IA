@@ -1,11 +1,23 @@
-Feb 16 14:35:12 oracle8node1 systemd[1]: httpd.service: Main process exited, code=exited, status=1/FAILURE
-Feb 16 14:35:12 oracle8node1 systemd[1]: httpd.service: Failed with result 'exit-code'.
-Feb 16 14:35:12 oracle8node1 systemd[1]: Failed to start The Apache HTTP Server.
-Feb 16 14:35:13 oracle8node1 systemd[1]: httpd.service: Unit entered failed state.
-Feb 16 14:35:13 oracle8node1 systemd[1]: httpd.service: Service hold-off time over, scheduling restart.
-Feb 16 14:35:13 oracle8node1 systemd[1]: httpd.service: Scheduled restart job, restart counter is at 5.
-Feb 16 14:35:13 oracle8node1 systemd[1]: Stopped The Apache HTTP Server.
-Feb 16 14:35:14 oracle8node1 kernel: [72345.678901] httpd[12345]: segfault at 7f8a2c3d4000 ip 00007f8a2c3d4000 sp 00007ffc8e9a7c80 error 15
-Feb 16 14:35:15 oracle8node1 systemd[1]: httpd.service: Start request repeated too quickly.
-Feb 16 14:35:15 oracle8node1 systemd[1]: httpd.service: Failed to start The Apache HTTP Server.
-Feb 16 14:35:15 oracle8node1 systemd[1]: httpd.service: Unit entered failed state.
+Feb 16 14:35:12 oracle8node1 postgres[12345]: [1-1] user=postgres,db=production,app=[unknown],client=192.168.20.100 FATAL:  sorry, too many clients already
+Feb 16 14:35:12 oracle8node1 postgres[12346]: [2-1] user=appuser,db=production,app=Django,client=192.168.20.101 FATAL:  remaining connection slots are reserved for non-replication superuser connections
+Feb 16 14:35:13 oracle8node1 postgres[12347]: [3-1] user=postgres,db=production LOG:  could not receive data from client: Connection reset by peer
+Feb 16 14:35:14 oracle8node1 postgres[12348]: [4-1] user=postgres,db=postgres ERROR:  canceling statement due to lock timeout
+Feb 16 14:35:14 oracle8node1 postgres[12348]: [4-2] user=postgres,db=postgres CONTEXT:  while updating tuple (0,12) in relation "orders"
+Feb 16 14:35:15 oracle8node1 postgres[12349]: [5-1] user=appuser,db=production ERROR:  deadlock detected
+Feb 16 14:35:15 oracle8node1 postgres[12349]: [5-2] user=appuser,db=production DETAIL:  Process 12349 waits for ShareLock on transaction 1234567; blocked by process 12350.
+Feb 16 14:35:15 oracle8node1 postgres[12349]: [5-3] user=appuser,db=production HINT:  See server log for query details.
+Feb 16 14:35:16 oracle8node1 postgres[12350]: [6-1] user=postgres,db=production WARNING:  could not write block 123456 of temporary file: No space left on device
+Feb 16 14:35:17 oracle8node1 postgres[12351]: [7-1] user=autovacuum,db=production,app=[unknown] LOG:  automatic vacuum of table "production.public.user_logs": index scans: 0
+Feb 16 14:35:17 oracle8node1 postgres[12351]: [7-2] user=autovacuum,db=production,app=[unknown] DETAIL:  pages: 0 removed, 456789 remain, 0 skipped due to pins, 0 skipped frozen
+Feb 16 14:35:18 oracle8node1 postgres[1234]: [8-1] LOG:  checkpoints are occurring too frequently (15 seconds apart)
+Feb 16 14:35:18 oracle8node1 postgres[1234]: [8-2] HINT:  Consider increasing the configuration parameter "max_wal_size".
+Feb 16 14:35:19 oracle8node1 postgres[12352]: [9-1] user=postgres,db=production ERROR:  out of memory
+Feb 16 14:35:19 oracle8node1 postgres[12352]: [9-2] user=postgres,db=production DETAIL:  Failed on request of size 8388608 in memory context "TupleSort main".
+Feb 16 14:35:20 oracle8node1 kernel: [72345.678901] Out of memory: Kill process 12352 (postgres) score 850 or sacrifice child
+Feb 16 14:35:20 oracle8node1 systemd[1]: postgresql-15.service: Main process exited, code=killed, status=9/KILL
+Feb 16 14:35:21 oracle8node1 postgres[1234]: [10-1] LOG:  server process (PID 12352) was terminated by signal 9: Killed
+Feb 16 14:35:21 oracle8node1 postgres[1234]: [10-2] DETAIL:  Failed process was running: SELECT * FROM large_table ORDER BY created_at
+Feb 16 14:35:22 oracle8node1 postgres[1234]: [11-1] LOG:  terminating any other active server processes
+Feb 16 14:35:23 oracle8node1 postgres[12353]: [12-1] user=appuser,db=production FATAL:  the database system is in recovery mode
+Feb 16 14:35:24 oracle8node1 systemd[1]: postgresql-15.service: Failed with result 'signal'.
+Feb 16 14:35:25 oracle8node1 systemd[1]: postgresql-15.service: Unit entered failed state.

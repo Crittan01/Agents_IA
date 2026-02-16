@@ -70,7 +70,7 @@ PLAYBOOKS = """
 def analizar_log_y_extraer_variables(log_content):
     """Analiza log y extrae variables automáticamente"""
     
-    prompt = f"""Eres un experto en operaciones TI con Ansible Automation Platform (AAP/AWX).
+    prompt = f"""Eres un experto senior en operaciones TI con Ansible Automation Platform (AAP/AWX).
 
 LOG A ANALIZAR:
 {log_content}
@@ -78,37 +78,65 @@ LOG A ANALIZAR:
 PLAYBOOKS DISPONIBLES:
 {PLAYBOOKS}
 
-Realiza un análisis completo y responde en formato JSON con esta estructura EXACTA:
+INSTRUCCIONES DE ANÁLISIS:
+
+1. IDENTIFICAR EL PROBLEMA PRINCIPAL:
+   - Si un SERVICIO está caído/failed/killed → playbook: service_restart.yml
+   - Si el problema es SOLO espacio en disco (sin servicios caídos) → playbook: disk_cleanup.yml
+   - Prioriza SIEMPRE servicios caídos sobre espacio en disco
+
+2. DETECCIÓN DE SERVICIOS CAÍDOS:
+   - Busca: "failed", "killed", "exited", "terminated", "signal", "crash", "stopped"
+   - Servicios comunes: postgresql, httpd, nginx, mysql, mariadb, tomcat, sshd
+   - Si encuentras servicio caído → SIEMPRE usa service_restart.yml
+
+3. DETECCIÓN DE PROBLEMAS DE ESPACIO:
+   - Busca: "No space left", "disk full", "filesystem full", "out of space"
+   - Usa disk_cleanup.yml SOLO si NO hay servicios caídos
+
+Responde en formato JSON con esta estructura EXACTA:
 
 {{
-  "diagnostico": "Descripción técnica del problema en 2-3 líneas",
+  "diagnostico": "Descripción del problema principal en 2-3 líneas. Si hay servicio caído, mencionarlo PRIMERO",
   "severidad": "Crítico|Alto|Medio|Bajo",
-  "playbook_recomendado": "nombre_exacto_del_playbook.yml",
-  "razon_playbook": "Por qué este playbook es el indicado",
+  "playbook_recomendado": "service_restart.yml|disk_cleanup.yml",
+  "razon_playbook": "Explicación de por qué este playbook. Si hay servicio caído, mencionar que debe reiniciarse PRIMERO antes de limpiar disco",
   "variables_extraidas": {{
-    // Para disk_cleanup.yml:
-    "target_host": "hostname extraído del log",
-    "cleanup_paths": ["/var/log", "/tmp"],
-    "retention_days": 7,
+    // Si service_restart.yml:
+    "target_host": "hostname del servidor",
+    "service_name": "nombre exacto del servicio (postgresql, httpd, nginx, mysql, etc.)",
+    "service_action": "restart",
     "email_to": "lab.automation.tech@gmail.com",
     
-    // Para service_restart.yml:
-    "service_name": "nombre del servicio extraído del log (httpd, postgresql, nginx, etc.)",
-    "service_action": "restart"
+    // Si disk_cleanup.yml:
+    "target_host": "hostname del servidor",
+    "cleanup_paths": ["/var/log", "/tmp"],
+    "retention_days": 7,
+    "email_to": "lab.automation.tech@gmail.com"
   }},
-  "verificacion": "Qué revisar después de la ejecución"
+  "verificacion": "Qué verificar después. Si hay servicio caído, mencionar verificar logs del servicio",
+  "problemas_adicionales": "Si detectas otros problemas (memoria, conexiones, etc.), mencionarlos aquí para acción posterior"
 }}
 
-IMPORTANTE:
-- Para disk_cleanup.yml: extrae las rutas llenas del log
-- Para service_restart.yml: extrae el nombre del servicio que falló (httpd, postgresql, nginx, sshd, etc.)
-- Detecta el servidor desde el hostname en el log
-- Responde SOLO con el JSON, sin texto adicional"""
+EJEMPLOS DE DECISIÓN CORRECTA:
+
+Ejemplo 1 - PostgreSQL caído:
+Log: "postgresql.service: Failed" + "No space left"
+→ playbook_recomendado: "service_restart.yml"
+→ razon: "PostgreSQL está caído. Debe reiniciarse PRIMERO. Después ejecutar disk_cleanup.yml para el espacio"
+
+Ejemplo 2 - Solo disco lleno:
+Log: "No space left on device" (sin servicios caídos)
+→ playbook_recomendado: "disk_cleanup.yml"
+→ razon: "Problema de espacio en disco sin servicios afectados"
+
+Responde SOLO con el JSON, sin texto adicional.
+"""
 
     try:
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=2000,
+            max_tokens=2500,  # Aumentado para incluir problemas_adicionales
             messages=[{"role": "user", "content": prompt}]
         )
         
@@ -142,7 +170,7 @@ def formatear_analisis_visual(resultado):
     # Contenedor principal con estilo
     with st.container():
         # Header
-        st.markdown("### ANÁLISIS DEL INCIDENTE")
+        st.markdown("### 📊 ANÁLISIS DEL INCIDENTE")
         st.markdown("---")
         
         # 1. DIAGNÓSTICO
@@ -156,13 +184,13 @@ def formatear_analisis_visual(resultado):
         
         # Color según severidad
         if severidad.lower() == 'crítico':
-            st.error(f"**{severidad}**")
+            st.error(f"🔴 **{severidad}**")
         elif severidad.lower() == 'alto':
-            st.warning(f"**{severidad}**")
+            st.warning(f"🟠 **{severidad}**")
         elif severidad.lower() == 'medio':
-            st.info(f"**{severidad}**")
+            st.info(f"🟡 **{severidad}**")
         else:
-            st.success(f"**{severidad}**")
+            st.success(f"🟢 **{severidad}**")
         
         # 3. PLAYBOOK RECOMENDADO
         st.markdown("#### 3. PLAYBOOK RECOMENDADO")
@@ -189,6 +217,12 @@ def formatear_analisis_visual(resultado):
         st.markdown("#### 5. VERIFICACIÓN POST-EJECUCIÓN")
         verificacion = resultado.get('verificacion', 'No especificada')
         st.success(verificacion)
+        
+        # 6. PROBLEMAS ADICIONALES (NUEVO)
+        if 'problemas_adicionales' in resultado and resultado['problemas_adicionales']:
+            st.markdown("#### 6. ⚠️ PROBLEMAS ADICIONALES DETECTADOS")
+            st.warning(resultado['problemas_adicionales'])
+            st.info("💡 **Recomendación:** Después de resolver el problema principal, considera ejecutar playbooks adicionales para estos problemas")
 
 def ejecutar_playbook_awx(playbook_name, variables):
     """Ejecuta playbook en AWX"""

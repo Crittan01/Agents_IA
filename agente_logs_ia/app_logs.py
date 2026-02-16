@@ -118,7 +118,7 @@ def ejecutar_playbook_awx(playbook_name, variables):
 
 # ==================== INTERFAZ ====================
 
-st.title("🤖 Agente IA - Análisis de Logs + Ejecución Automática")
+st.title("Agente IA - Análisis de Logs + Ejecución Automática")
 st.markdown("**Análisis inteligente con capacidad de ejecución en AWX**")
 
 # Sidebar
@@ -141,16 +141,16 @@ with st.sidebar:
     - Reporte ejecutivo por email
     
     **Playbooks con Ejecución:**
-    - ✅ disk_cleanup.yml
-    - 🔜 oracle_health_check.yml
-    - 🔜 weblogic_restart.yml
+    - disk_cleanup.yml
+    - oracle_health_check.yml
+    - weblogic_restart.yml
     """)
     
     st.markdown("---")
     st.markdown("**Desarrollado por:** NTT Data Automation Team")
 
 # Tabs
-tab1, tab2, tab3 = st.tabs(["📝 Pegar Log", "📁 Logs de Ejemplo", "🚀 Ejecutar Playbook"])
+tab1, tab2, tab3 = st.tabs(["Pegar Log", "Logs de Ejemplo", "Ejecutar Playbook"])
 
 with tab1:
     st.subheader("Pega tu log de error aquí")
@@ -162,7 +162,7 @@ with tab1:
     
     col1, col2 = st.columns([1, 5])
     with col1:
-        if st.button("🔍 Analizar", type="primary", use_container_width=True):
+        if st.button("Analizar", type="primary", use_container_width=True):
             if log_input:
                 with st.spinner("Analizando log con IA..."):
                     resultado = analizar_log(log_input)
@@ -203,7 +203,7 @@ with tab2:
         
         st.code(contenido, language="log")
         
-        if st.button("🔍 Analizar Este Ejemplo", type="primary"):
+        if st.button("Analizar Este Ejemplo", type="primary"):
             with st.spinner("Analizando..."):
                 resultado = analizar_log(contenido)
                 st.success("✅ Análisis completado")
@@ -212,16 +212,16 @@ with tab2:
                 
                 if "disk_cleanup" in resultado.lower() or "disco lleno" in ejemplo.lower():
                     st.session_state.playbook_suggested = "disk_cleanup"
-                    st.info("💡 Ve a la pestaña 'Ejecutar Playbook' para lanzar disk_cleanup.yml")
+                    st.info("Ve a la pestaña 'Ejecutar Playbook' para lanzar disk_cleanup.yml")
     
     except FileNotFoundError:
-        st.error(f"❌ Archivo no encontrado: {logs_map[ejemplo]}")
+        st.error(f"Archivo no encontrado: {logs_map[ejemplo]}")
 
 with tab3:
-    st.subheader("🚀 Ejecutar Playbook en AWX")
+    st.subheader("Ejecutar Playbook en AWX")
     
     if not AWX_AVAILABLE:
-        st.error("❌ Cliente AWX no disponible. Verifica la configuración.")
+        st.error("Cliente AWX no disponible. Verifica la configuración.")
     else:
         playbook_select = st.selectbox(
             "Playbook a ejecutar:",
@@ -266,7 +266,7 @@ with tab3:
             st.markdown("---")
             
             # Botón de ejecución
-            if st.button("▶️ EJECUTAR PLAYBOOK EN AWX", type="primary", use_container_width=True):
+            if st.button("EJECUTAR PLAYBOOK EN AWX", type="primary", use_container_width=True):
                 # Preparar variables
                 paths_list = [p.strip() for p in cleanup_paths.split('\n') if p.strip()]
                 
@@ -277,7 +277,7 @@ with tab3:
                     "email_to": email_to
                 }
                 
-                with st.spinner("🚀 Lanzando job en AWX..."):
+                with st.spinner("Lanzando job en AWX..."):
                     job_id, message = ejecutar_playbook_awx("disk_cleanup", extra_vars)
                     
                     if job_id:
@@ -292,7 +292,7 @@ with tab3:
                             status = awx.wait_for_job(job_id, timeout=300)
                         
                         if status["status"] == "successful":
-                            st.success("✅ **JOB COMPLETADO EXITOSAMENTE**")
+                            st.success("**JOB COMPLETADO EXITOSAMENTE**")
                             st.balloons()
                             
                             # Mostrar output
@@ -300,15 +300,15 @@ with tab3:
                                 output = awx.get_job_output(job_id)
                                 st.code(output, language="bash")
                             
-                            st.info(f"📧 Reporte HTML enviado a: **{email_to}**")
+                            st.info(f"Reporte HTML enviado a: **{email_to}**")
                         
                         elif status["status"] == "failed":
-                            st.error("❌ **JOB FALLÓ**")
+                            st.error("**JOB FALLÓ**")
                             output = awx.get_job_output(job_id)
                             st.code(output, language="bash")
                         
                         else:
-                            st.warning(f"⚠️ Status: {status['status']}")
+                            st.warning(f"Status: {status['status']}")
                     
                     else:
                         st.error(f"❌ {message}")

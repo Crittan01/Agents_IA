@@ -5,7 +5,6 @@
 - name: Disk Cleanup con Reporte Ejecutivo
   hosts: "{{ target_host | default('localhost') }}"
   gather_facts: true
-  become: true
 
   vars:
     # Variables por defecto (se pueden sobreescribir)
@@ -17,102 +16,105 @@
     report_path: "/tmp/disk_cleanup_report_{{ ansible_date_time.epoch }}.html"
 
   tasks:
-    # ========== CAPTURA ESTADO ANTES ==========
-    - name: "ANTES - Capturar uso de disco"
-      ansible.builtin.shell: |
-        set -o pipefail
-        df -h | grep -v tmpfs
-      register: disk_before
-      changed_when: false
+    - name: "INICIO - Limpieza de Disco"
+      become: true
+      block:
+        # ========== CAPTURA ESTADO ANTES ==========
+        - name: "ANTES - Capturar uso de disco"
+          ansible.builtin.shell: |
+            set -o pipefail
+            df -h | grep -v tmpfs
+          register: disk_before
+          changed_when: false
 
-    - name: "ANTES - Obtener espacio disponible en GB"
-      ansible.builtin.shell: |
-        set -o pipefail
-        df -BG {{ item }} | tail -1 | awk '{print $4}' | sed 's/G//'
-      loop: "{{ cleanup_paths }}"
-      register: space_before_detail
-      changed_when: false
+        - name: "ANTES - Obtener espacio disponible en GB"
+          ansible.builtin.shell: |
+            set -o pipefail
+            df -BG {{ item }} | tail -1 | awk '{print $4}' | sed 's/G//'
+          loop: "{{ cleanup_paths }}"
+          register: space_before_detail
+          changed_when: false
 
-    - name: "ANTES - Top 10 archivos más grandes"
-      ansible.builtin.shell: |
-        set -o pipefail
-        find {{ cleanup_paths | join(' ') }} -type f -exec ls -lh {} \; 2>/dev/null | \
-        sort -k5 -hr | head -10
-      register: top_files_before
-      changed_when: false
-      ignore_errors: true
+        - name: "ANTES - Top 10 archivos más grandes"
+          ansible.builtin.shell: |
+            set -o pipefail
+            find {{ cleanup_paths | join(' ') }} -type f -exec ls -lh {} \; 2>/dev/null | \
+            sort -k5 -hr | head -10
+          register: top_files_before
+          changed_when: false
+          ignore_errors: true
 
-    - name: "ANTES - Calcular espacio total usado"
-      ansible.builtin.shell: |
-        set -o pipefail
-        du -sh {{ item }} 2>/dev/null | awk '{print $1}'
-      loop: "{{ cleanup_paths }}"
-      register: usage_before
-      changed_when: false
-      ignore_errors: true
+        - name: "ANTES - Calcular espacio total usado"
+          ansible.builtin.shell: |
+            set -o pipefail
+            du -sh {{ item }} 2>/dev/null | awk '{print $1}'
+          loop: "{{ cleanup_paths }}"
+          register: usage_before
+          changed_when: false
+          ignore_errors: true
 
-    # ========== EJECUCIÓN DE LIMPIEZA ==========
-    - name: "LIMPIEZA - Logs antiguos | dias > {{ retention_days }}"
-      ansible.builtin.find:
-        paths: "{{ cleanup_paths }}"
-        patterns: "*.log,*.log.*"
-        age: "{{ retention_days }}d"
-        recurse: true
-      register: old_logs
+        # ========== EJECUCIÓN DE LIMPIEZA ==========
+        - name: "LIMPIEZA - Logs antiguos | dias > {{ retention_days }}"
+          ansible.builtin.find:
+            paths: "{{ cleanup_paths }}"
+            patterns: "*.log,*.log.*"
+            age: "{{ retention_days }}d"
+            recurse: true
+          register: old_logs
 
-    - name: "LIMPIEZA - Eliminar logs antiguos"
-      ansible.builtin.file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ old_logs.files }}"
-      when: old_logs.files | length > 0
-      register: deleted_logs
+        - name: "LIMPIEZA - Eliminar logs antiguos"
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ old_logs.files }}"
+          when: old_logs.files | length > 0
+          register: deleted_logs
 
-    - name: "LIMPIEZA - Archivos temporales antiguos"
-      ansible.builtin.find:
-        paths: /tmp
-        age: "{{ retention_days }}d"
-        recurse: true
-      register: old_temp_files
+        - name: "LIMPIEZA - Archivos temporales antiguos"
+          ansible.builtin.find:
+            paths: /tmp
+            age: "{{ retention_days }}d"
+            recurse: true
+          register: old_temp_files
 
-    - name: "LIMPIEZA - Eliminar temporales antiguos"
-      ansible.builtin.file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ old_temp_files.files }}"
-      when: old_temp_files.files | length > 0
-      register: deleted_temp
+        - name: "LIMPIEZA - Eliminar temporales antiguos"
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ old_temp_files.files }}"
+          when: old_temp_files.files | length > 0
+          register: deleted_temp
 
-    # ========== CAPTURA ESTADO DESPUÉS ==========
-    - name: "DESPUÉS - Capturar uso de disco"
-      ansible.builtin.shell: |
-        set -o pipefail
-        df -h | grep -v tmpfs
-      register: disk_after
-      changed_when: false
+        # ========== CAPTURA ESTADO DESPUÉS ==========
+        - name: "DESPUÉS - Capturar uso de disco"
+          ansible.builtin.shell: |
+            set -o pipefail
+            df -h | grep -v tmpfs
+          register: disk_after
+          changed_when: false
 
-    - name: "DESPUÉS - Obtener espacio disponible en GB"
-      ansible.builtin.shell: |
-        set -o pipefail
-        df -BG {{ item }} | tail -1 | awk '{print $4}' | sed 's/G//'
-      loop: "{{ cleanup_paths }}"
-      register: space_after_detail
-      changed_when: false
+        - name: "DESPUÉS - Obtener espacio disponible en GB"
+          ansible.builtin.shell: |
+            set -o pipefail
+            df -BG {{ item }} | tail -1 | awk '{print $4}' | sed 's/G//'
+          loop: "{{ cleanup_paths }}"
+          register: space_after_detail
+          changed_when: false
 
-    - name: "DESPUÉS - Calcular espacio total usado"
-      ansible.builtin.shell: |
-        set -o pipefail
-        du -sh {{ item }} 2>/dev/null | awk '{print $1}'
-      loop: "{{ cleanup_paths }}"
-      register: usage_after
-      changed_when: false
-      ignore_errors: true
+        - name: "DESPUÉS - Calcular espacio total usado"
+          ansible.builtin.shell: |
+            set -o pipefail
+            du -sh {{ item }} 2>/dev/null | awk '{print $1}'
+          loop: "{{ cleanup_paths }}"
+          register: usage_after
+          changed_when: false
+          ignore_errors: true
 
-    # ========== CALCULAR MÉTRICAS ==========
-    - name: "MÉTRICAS - Calcular espacio liberado"
-      ansible.builtin.set_fact:
-        space_freed_gb: "{{ (space_after_detail.results[0].stdout | int) - (space_before_detail.results[0].stdout | int) }}"
-        total_files_deleted: "{{ (deleted_logs.results | default([]) | length) + (deleted_temp.results | default([]) | length) }}"
+        # ========== CALCULAR MÉTRICAS ==========
+        - name: "MÉTRICAS - Calcular espacio liberado"
+          ansible.builtin.set_fact:
+            space_freed_gb: "{{ (space_after_detail.results[0].stdout | int) - (space_before_detail.results[0].stdout | int) }}"
+            total_files_deleted: "{{ (deleted_logs.results | default([]) | length) + (deleted_temp.results | default([]) | length) }}"
 
     # ========== GENERAR REPORTE HTML ==========
     - name: "REPORTE - Generar HTML desde template"
@@ -121,7 +123,6 @@
         dest: "{{ report_path }}"
         mode: "0644"
       delegate_to: localhost
-      become: false
 
     # ========== ENVIAR EMAIL ==========
     - name: "EMAIL - Enviar reporte ejecutivo"

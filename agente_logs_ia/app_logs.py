@@ -145,13 +145,13 @@ def formatear_analisis_visual(resultado):
         
         # Color según severidad
         if severidad.lower() == 'crítico':
-            st.error(f"🔴 **{severidad}**")
+            st.error(f"**{severidad}**")
         elif severidad.lower() == 'alto':
-            st.warning(f"🟠 **{severidad}**")
+            st.warning(f"**{severidad}**")
         elif severidad.lower() == 'medio':
-            st.info(f"🟡 **{severidad}**")
+            st.info(f"**{severidad}**")
         else:
-            st.success(f"🟢 **{severidad}**")
+            st.success(f"**{severidad}**")
         
         # 3. PLAYBOOK RECOMENDADO
         st.markdown("#### 3. PLAYBOOK RECOMENDADO")
@@ -213,7 +213,7 @@ st.markdown("**Análisis inteligente con extracción automática de variables**"
 
 # Sidebar
 with st.sidebar:
-    st.header("📋 Información")
+    st.header("Información")
     
     # Status AWX
     if AWX_AVAILABLE:

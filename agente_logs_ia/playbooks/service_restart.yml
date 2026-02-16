@@ -144,6 +144,18 @@
       delegate_to: localhost
       when: email_smtp_user is defined
 
+    # ========== NOTIFICAR TEAMS ==========
+    - name: "TEAMS - Enviar notificación"
+      ansible.builtin.uri:
+        url: "{{ teams_webhook_url }}"
+        method: POST
+        body: "{{ lookup('template', 'templates/teams_notification.json.j2') }}"
+        body_format: json
+        status_code: 200
+      delegate_to: localhost
+      when: teams_webhook_url is defined and teams_webhook_url | length > 0
+      ignore_errors: true
+
     # ========== RESUMEN FINAL ==========
     - name: "RESUMEN - Mostrar resultado"
       ansible.builtin.debug:

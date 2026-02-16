@@ -5,11 +5,10 @@
 - name: Disk Cleanup con Reporte Ejecutivo
   hosts: "{{ target_host | default('localhost') }}"
   gather_facts: true
-  become: false
 
   vars:
     email_smtp_user: "lab.automation.tech@gmail.com"
-    email_smtp_password: "{{ email_pwd }}"
+    email_smtp_password: "criTAN1*"
 
     # Variables por defecto (se pueden sobreescribir)
     cleanup_paths:

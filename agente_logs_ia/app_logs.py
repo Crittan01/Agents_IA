@@ -83,7 +83,7 @@ Realiza un análisis completo y responde en formato JSON con esta estructura EXA
     "target_host": "hostname extraído del log o 'localhost' si no se identifica",
     "cleanup_paths": ["ruta1", "ruta2"],
     "retention_days": 7,
-    "email_to": "manager@example.com"
+    "email_to": "lab.automation.tech@gmail.com"
   }},
   "verificacion": "Qué revisar después de la ejecución"
 }}
@@ -131,7 +131,7 @@ def formatear_analisis_visual(resultado):
     # Contenedor principal con estilo
     with st.container():
         # Header
-        st.markdown("### 📊 ANÁLISIS DEL INCIDENTE")
+        st.markdown("### ANÁLISIS DEL INCIDENTE")
         st.markdown("---")
         
         # 1. DIAGNÓSTICO
@@ -257,32 +257,39 @@ with tab1:
         placeholder="Pega aquí el contenido del log que deseas analizar..."
     )
     
+    # Botones en columnas
     col1, col2 = st.columns([1, 5])
     with col1:
-        if st.button("Analizar", type="primary", use_container_width=True):
-            if log_input:
-                with st.spinner("Analizando log con IA y extrayendo variables..."):
-                    resultado, error = analizar_log_y_extraer_variables(log_input)
-                    
-                    if resultado:
-                        st.session_state.analisis_resultado = resultado
-                        st.session_state.variables_extraidas = resultado.get('variables_extraidas', {})
-                        st.session_state.playbook_sugerido = resultado.get('playbook_recomendado', '').replace('.yml', '')
-                        
-                        st.success("Análisis completado - Variables extraídas automáticamente")
-                        st.markdown("---")
-                        formatear_analisis_visual(resultado)
-                        
-                        st.info("Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
-                    else:
-                        st.error(f"Error en análisis: {error}")
-    
+        analizar_btn = st.button("Analizar", type="primary", use_container_width=True)
     with col2:
-        if st.button("Limpiar", use_container_width=True):
-            st.session_state.analisis_resultado = None
-            st.session_state.variables_extraidas = {}
-            st.session_state.playbook_sugerido = None
-            st.rerun()
+        limpiar_btn = st.button("Limpiar", use_container_width=True)
+    
+    # Lógica de limpieza
+    if limpiar_btn:
+        st.session_state.analisis_resultado = None
+        st.session_state.variables_extraidas = {}
+        st.session_state.playbook_sugerido = None
+        st.rerun()
+    
+    # RESULTADO FUERA DE LAS COLUMNAS (ancho completo)
+    if analizar_btn and log_input:
+        with st.spinner("Analizando log con IA y extrayendo variables..."):
+            resultado, error = analizar_log_y_extraer_variables(log_input)
+            
+            if resultado:
+                st.session_state.analisis_resultado = resultado
+                st.session_state.variables_extraidas = resultado.get('variables_extraidas', {})
+                st.session_state.playbook_sugerido = resultado.get('playbook_recomendado', '').replace('.yml', '')
+                
+                st.success("Análisis completado - Variables extraídas automáticamente")
+                st.markdown("---")
+                
+                # Llamar función de formateo (ahora en ancho completo)
+                formatear_analisis_visual(resultado)
+                
+                st.info("Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")
+            else:
+                st.error(f"Error en análisis: {error}")
 
 with tab2:
     st.subheader("Selecciona un log de ejemplo")
@@ -313,7 +320,10 @@ with tab2:
         
         st.code(contenido, language="log")
         
-        if st.button("Analizar Este Ejemplo", type="primary"):
+        analizar_ejemplo_btn = st.button("Analizar Este Ejemplo", type="primary")
+        
+        # RESULTADO FUERA (ancho completo)
+        if analizar_ejemplo_btn:
             with st.spinner("Analizando log con IA y extrayendo variables..."):
                 resultado, error = analizar_log_y_extraer_variables(contenido)
                 
@@ -324,6 +334,8 @@ with tab2:
                     
                     st.success("Análisis completado - Variables extraídas automáticamente")
                     st.markdown("---")
+                    
+                    # Llamar función de formateo (ancho completo)
                     formatear_analisis_visual(resultado)
                     
                     st.info("Ve a la pestaña **'Ejecutar Playbook'** - Las variables ya están pre-cargadas")

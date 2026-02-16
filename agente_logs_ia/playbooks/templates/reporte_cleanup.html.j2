@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Limpieza de Disco</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 30px;
+            background-color: #f8f9fa;
+        }
+        
+        .metric-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .metric-card.success {
+            border-left-color: #10b981;
+        }
+        
+        .metric-card.warning {
+            border-left-color: #f59e0b;
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .metric-value.success {
+            color: #10b981;
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            color: #1f2937;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .comparison-table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .comparison-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .footer {
+            background-color: #f3f4f6;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
+        .code-block {
+            background-color: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>✅ Limpieza de Disco Completada</h1>
+            <div class="subtitle">
+                Servidor: {{ inventory_hostname }} | 
+                Fecha: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+            </div>
+        </div>
+        
+        <!-- Métricas Resumen -->
+        <div class="summary">
+            <div class="metric-card success">
+                <div class="metric-label">Espacio Liberado</div>
+                <div class="metric-value success">{{ space_freed_gb }} GB</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Archivos Eliminados</div>
+                <div class="metric-value">{{ total_files_deleted }}</div>
+            </div>
+            
+            <div class="metric-card warning">
+                <div class="metric-label">Retención</div>
+                <div class="metric-value" style="font-size: 24px;">{{ retention_days }} días</div>
+            </div>
+        </div>
+        
+        <!-- Contenido Principal -->
+        <div class="content">
+            <!-- Resumen Ejecutivo -->
+            <div class="section">
+                <h2 class="section-title">📊 Resumen Ejecutivo</h2>
+                <p style="line-height: 1.6; color: #4b5563;">
+                    Se completó exitosamente la limpieza automatizada de disco en el servidor 
+                    <strong>{{ inventory_hostname }}</strong>. El proceso eliminó archivos antiguos 
+                    (mayores a {{ retention_days }} días) liberando un total de 
+                    <strong>{{ space_freed_gb }} GB</strong> de espacio en disco.
+                </p>
+            </div>
+            
+            <!-- Comparación Antes/Después -->
+            <div class="section">
+                <h2 class="section-title">📈 Comparación: Antes vs Después</h2>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Ruta</th>
+                            <th>Uso ANTES</th>
+                            <th>Uso DESPUÉS</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cleanup_paths %}
+                        <tr>
+                            <td><code>{{ item }}</code></td>
+                            <td>{{ usage_before.results[loop.index0].stdout }}</td>
+                            <td>{{ usage_after.results[loop.index0].stdout }}</td>
+                            <td><span class="badge badge-success">Limpiado</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Espacio en Disco -->
+            <div class="section">
+                <h2 class="section-title">💾 Espacio en Disco</h2>
+                <div class="code-block">{{ disk_after.stdout }}</div>
+            </div>
+            
+            <!-- Detalles de Ejecución -->
+            <div class="section">
+                <h2 class="section-title">⚙️ Detalles de Ejecución</h2>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Parámetro</th>
+                        <th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td>Servidor</td>
+                        <td><code>{{ inventory_hostname }}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Sistema Operativo</td>
+                        <td>{{ ansible_distribution }} {{ ansible_distribution_version }}</td>
+                    </tr>
+                    <tr>
+                        <td>Rutas Limpiadas</td>
+                        <td>{{ cleanup_paths | join(', ') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Retención Configurada</td>
+                        <td>{{ retention_days }} días</td>
+                    </tr>
+                    <tr>
+                        <td>Fecha de Ejecución</td>
+                        <td>{{ ansible_date_time.iso8601 }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Recomendaciones -->
+            <div class="section">
+                <h2 class="section-title">💡 Recomendaciones</h2>
+                <ul style="line-height: 2; color: #4b5563; padding-left: 20px;">
+                    <li>✓ Programar esta limpieza automáticamente cada 15 días</li>
+                    <li>✓ Monitorear el espacio en disco semanalmente</li>
+                    <li>✓ Validar que aplicaciones críticas no requieran logs antiguos</li>
+                    <li>✓ Considerar implementar rotación de logs automática</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <strong>NTT Data - Automation Team</strong><br>
+            Reporte generado automáticamente por Ansible Automation Platform<br>
+            Agente IA - Análisis y Remediación Inteligente
+        </div>
+    </div>
+</body>
+</html>

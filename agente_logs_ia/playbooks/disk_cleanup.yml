@@ -135,7 +135,7 @@
         username: "{{ email_smtp_user }}"
         password: "{{ email_smtp_password }}"
         to: "{{ email_to }}"
-        from: "automation@nttdata.com"
+        from: "lab.automation.tech@gmail.com"
         subject: "Limpieza de Disco Completada - {{ inventory_hostname }}"
         subtype: html
         body: "{{ lookup('file', report_path) }}"

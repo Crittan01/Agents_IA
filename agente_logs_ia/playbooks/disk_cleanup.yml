@@ -138,6 +138,7 @@
         from: "lab.automation.tech@gmail.com"
         subject: "Limpieza de Disco Completada - {{ inventory_hostname }}"
         subtype: html
+        secure: starttls
         body: "{{ lookup('file', report_path) }}"
       delegate_to: localhost
       when: email_smtp_user is defined

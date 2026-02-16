@@ -3,7 +3,7 @@
 # Playbook de limpieza de disco con reporte HTML ejecutivo
 
 - name: Disk Cleanup con Reporte Ejecutivo
-  hosts: "{{ target_host | default([]) }}"
+  hosts: "{{ target_host | default('localhost') }}"
   gather_facts: true
   become: true
 
@@ -43,7 +43,9 @@
       ignore_errors: true
 
     - name: "ANTES - Calcular espacio total usado"
-      ansible.builtin.shell: du -sh {{ item }} 2>/dev/null | awk '{print $1}'
+      ansible.builtin.shell: |
+        set -o pipefail
+        du -sh {{ item }} 2>/dev/null | awk '{print $1}'
       loop: "{{ cleanup_paths }}"
       register: usage_before
       changed_when: false
@@ -117,10 +119,9 @@
       ansible.builtin.template:
         src: templates/reporte_cleanup.html.j2
         dest: "{{ report_path }}"
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_gid }}"
         mode: "0644"
       delegate_to: localhost
+      become: false
 
     # ========== ENVIAR EMAIL ==========
     - name: "EMAIL - Enviar reporte ejecutivo"
@@ -135,6 +136,7 @@
         subtype: html
         body: "{{ lookup('file', report_path) }}"
       delegate_to: localhost
+      become: false # ← CRÍTICO: Deshabilitar become para localhost
       when: email_smtp_user is defined
 
     - name: "RESUMEN - Mostrar resultado"
